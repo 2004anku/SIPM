@@ -175,19 +175,17 @@ const deleteCollegeAdmin = async (req, res) => {
       role: "college_admin",
     });
 
-    ```
-if (!collegeAdmin) {
-  return res.status(404).json({
-    success: false,
-    message: "College Admin not found",
-  });
-}
+    if (!collegeAdmin) {
+      return res.status(404).json({
+        success: false,
+        message: "College Admin not found",
+      });
+    }
 
-res.status(200).json({
-  success: true,
-  message: "College Admin deleted successfully",
-});
-```;
+    res.status(200).json({
+      success: true,
+      message: "College Admin deleted successfully",
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
