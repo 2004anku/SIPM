@@ -9,7 +9,7 @@ const userRoutes = require("./feature/user/user.model");
 const collegeRoutes = require("./feature/super-admin/college/college.routes");
 const collegeAdminRoutes = require("./feature/super-admin/college-admin/collegeAdmin.routes");
 const studentRoutes = require("./feature/college-admin/student/student.routes");
-const recruiterRoutes = require("./feature/recruiter/recruiter.routes");
+const recruiterRoutes = require("./feature/college-admin/recruiter/recruiter.routes");
 
 const app = express();
 
@@ -25,7 +25,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/colleges", collegeRoutes);
 app.use("/api/college-admins", collegeAdminRoutes);
 app.use("/api/college-admin/students", studentRoutes);
-app.use("/api/recruiters", recruiterRoutes);
+app.use("/api/college-admin/recruiters", recruiterRoutes);
 app.use("/api/auth", authRoutes);
 
 // Server

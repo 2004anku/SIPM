@@ -8,7 +8,11 @@ const recruiterSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-
+    collegeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "College",
+      required: true,
+    },
     companyName: {
       type: String,
       required: [true, "Company name is required"],

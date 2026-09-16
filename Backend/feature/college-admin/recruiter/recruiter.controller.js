@@ -1,7 +1,7 @@
 const bcrypt = require("bcrypt");
 
 const Recruiter = require("./recruiter.model");
-const User = require("../user/user.model");
+const User = require("../../user/user.model");
 
 // Add Recruiter
 const addRecruiter = async (req, res) => {
@@ -17,7 +17,8 @@ const addRecruiter = async (req, res) => {
       companyDescription,
     } = req.body;
 
-    // Check required fields
+    const { collegeId } = req.user;
+
     if (
       !name ||
       !email ||
@@ -32,7 +33,6 @@ const addRecruiter = async (req, res) => {
       });
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -42,10 +42,8 @@ const addRecruiter = async (req, res) => {
       });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create User
     const user = await User.create({
       name,
       email,
@@ -53,23 +51,30 @@ const addRecruiter = async (req, res) => {
       role: "recruiter",
     });
 
-    // Create Recruiter Profile
-    const recruiter = await Recruiter.create({
-      userId: user._id,
-      companyName,
-      phone,
-      companyWebsite,
-      companyAddress,
-      companyDescription,
-    });
+    try {
+      const recruiter = await Recruiter.create({
+        userId: user._id,
+        collegeId,
+        companyName,
+        phone,
+        companyWebsite,
+        companyAddress,
+        companyDescription,
+      });
 
-    res.status(201).json({
-      success: true,
-      message: "Recruiter created successfully",
-      data: recruiter,
-    });
+      return res.status(201).json({
+        success: true,
+        message: "Recruiter created successfully",
+        data: recruiter,
+      });
+    } catch (recruiterError) {
+      await User.findByIdAndDelete(user._id);
+      throw recruiterError;
+    }
   } catch (error) {
-    res.status(500).json({
+    console.error("Add Recruiter error:", error);
+
+    return res.status(500).json({
       success: false,
       message: "Failed to create recruiter",
       error: error.message,
@@ -82,6 +87,7 @@ const getAllRecruiters = async (req, res) => {
   try {
     const recruiters = await Recruiter.find()
       .populate("userId", "name email role")
+      .populate("collegeId", "name")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -101,10 +107,9 @@ const getAllRecruiters = async (req, res) => {
 // Get Single Recruiter
 const getRecruiterById = async (req, res) => {
   try {
-    const recruiter = await Recruiter.findById(req.params.id).populate(
-      "userId",
-      "name email role",
-    );
+    const recruiter = await Recruiter.findById(req.params.id)
+      .populate("userId", "name email role")
+      .populate("collegeId", "name");
 
     if (!recruiter) {
       return res.status(404).json({
@@ -136,7 +141,9 @@ const updateRecruiter = async (req, res) => {
         new: true,
         runValidators: true,
       },
-    ).populate("userId", "name email role");
+    )
+      .populate("userId", "name email role")
+      .populate("collegeId", "name");
 
     if (!recruiter) {
       return res.status(404).json({
@@ -171,10 +178,7 @@ const deleteRecruiter = async (req, res) => {
       });
     }
 
-    // Delete linked user
     await User.findByIdAndDelete(recruiter.userId);
-
-    // Delete recruiter
     await Recruiter.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
