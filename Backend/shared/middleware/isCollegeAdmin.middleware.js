@@ -1,4 +1,4 @@
-const User = require("../../feature/user/user.model");
+const User = require("../../feature/users/user.model");
 
 const isCollegeAdmin = async (req, res, next) => {
   try {

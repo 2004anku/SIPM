@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt");
 
-const User = require("../../user/user.model");
+const User = require("../../users/user.model");
 const College = require("../college/college.model");
 
 // Create College Admin

@@ -7,16 +7,21 @@ const recruiterSchema = new mongoose.Schema(
       ref: "User",
       required: true,
       unique: true,
+      index: true,
     },
+
     collegeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "College",
       required: true,
+      index: true,
     },
-    companyName: {
+
+    designation: {
       type: String,
-      required: [true, "Company name is required"],
+      required: [true, "Designation is required"],
       trim: true,
+      maxlength: 100,
     },
 
     phone: {
@@ -25,33 +30,54 @@ const recruiterSchema = new mongoose.Schema(
       trim: true,
     },
 
+    companyName: {
+      type: String,
+      required: [true, "Company name is required"],
+      trim: true,
+      maxlength: 150,
+    },
+
     companyWebsite: {
       type: String,
       default: "",
       trim: true,
+      maxlength: 250,
     },
 
     companyAddress: {
       type: String,
       required: [true, "Company address is required"],
       trim: true,
+      maxlength: 300,
     },
 
     companyDescription: {
       type: String,
       default: "",
       trim: true,
+      maxlength: 1000,
     },
 
     isActive: {
       type: Boolean,
       default: true,
+      index: true,
     },
   },
   {
     timestamps: true,
   },
 );
+
+recruiterSchema.index({
+  collegeId: 1,
+  isActive: 1,
+});
+
+recruiterSchema.index({
+  collegeId: 1,
+  createdAt: -1,
+});
 
 const Recruiter = mongoose.model("Recruiter", recruiterSchema);
 

@@ -1,30 +1,40 @@
 const bcrypt = require("bcrypt");
 
 const Recruiter = require("./recruiter.model");
-const User = require("../../user/user.model");
+const User = require("../../users/user.model");
 
-// Add Recruiter
+// ==========================================
+// ADD RECRUITER
+// ==========================================
+
 const addRecruiter = async (req, res) => {
   try {
     const {
       name,
       email,
       password,
-      companyName,
+      designation,
       phone,
+      companyName,
       companyWebsite,
       companyAddress,
       companyDescription,
     } = req.body;
 
+    // College Admin's college ID comes from middleware
     const { collegeId } = req.user;
+
+    // ==========================================
+    // VALIDATE REQUIRED FIELDS
+    // ==========================================
 
     if (
       !name ||
       !email ||
       !password ||
-      !companyName ||
+      !designation ||
       !phone ||
+      !companyName ||
       !companyAddress
     ) {
       return res.status(400).json({
@@ -32,6 +42,10 @@ const addRecruiter = async (req, res) => {
         message: "Please provide all required fields",
       });
     }
+
+    // ==========================================
+    // CHECK EXISTING USER
+    // ==========================================
 
     const existingUser = await User.findOne({ email });
 
@@ -42,7 +56,15 @@ const addRecruiter = async (req, res) => {
       });
     }
 
+    // ==========================================
+    // HASH PASSWORD
+    // ==========================================
+
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ==========================================
+    // CREATE USER ACCOUNT
+    // ==========================================
 
     const user = await User.create({
       name,
@@ -51,12 +73,19 @@ const addRecruiter = async (req, res) => {
       role: "recruiter",
     });
 
+    // ==========================================
+    // CREATE RECRUITER PROFILE
+    // ==========================================
+
     try {
       const recruiter = await Recruiter.create({
         userId: user._id,
         collegeId,
-        companyName,
+
+        designation,
         phone,
+
+        companyName,
         companyWebsite,
         companyAddress,
         companyDescription,
@@ -68,7 +97,9 @@ const addRecruiter = async (req, res) => {
         data: recruiter,
       });
     } catch (recruiterError) {
+      // Roll back User if Recruiter creation fails
       await User.findByIdAndDelete(user._id);
+
       throw recruiterError;
     }
   } catch (error) {
@@ -82,7 +113,10 @@ const addRecruiter = async (req, res) => {
   }
 };
 
-// Get All Recruiters
+// ==========================================
+// GET ALL RECRUITERS
+// ==========================================
+
 const getAllRecruiters = async (req, res) => {
   try {
     const recruiters = await Recruiter.find()
@@ -90,13 +124,15 @@ const getAllRecruiters = async (req, res) => {
       .populate("collegeId", "name")
       .sort({ createdAt: -1 });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       count: recruiters.length,
       data: recruiters,
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("Get Recruiters error:", error);
+
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch recruiters",
       error: error.message,
@@ -104,7 +140,10 @@ const getAllRecruiters = async (req, res) => {
   }
 };
 
-// Get Single Recruiter
+// ==========================================
+// GET SINGLE RECRUITER
+// ==========================================
+
 const getRecruiterById = async (req, res) => {
   try {
     const recruiter = await Recruiter.findById(req.params.id)
@@ -118,12 +157,14 @@ const getRecruiterById = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: recruiter,
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("Get Recruiter error:", error);
+
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch recruiter",
       error: error.message,
@@ -131,7 +172,10 @@ const getRecruiterById = async (req, res) => {
   }
 };
 
-// Update Recruiter
+// ==========================================
+// UPDATE RECRUITER
+// ==========================================
+
 const updateRecruiter = async (req, res) => {
   try {
     const recruiter = await Recruiter.findByIdAndUpdate(
@@ -152,13 +196,15 @@ const updateRecruiter = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Recruiter updated successfully",
       data: recruiter,
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("Update Recruiter error:", error);
+
+    return res.status(500).json({
       success: false,
       message: "Failed to update recruiter",
       error: error.message,
@@ -166,7 +212,10 @@ const updateRecruiter = async (req, res) => {
   }
 };
 
-// Delete Recruiter
+// ==========================================
+// DELETE RECRUITER
+// ==========================================
+
 const deleteRecruiter = async (req, res) => {
   try {
     const recruiter = await Recruiter.findById(req.params.id);
@@ -178,21 +227,30 @@ const deleteRecruiter = async (req, res) => {
       });
     }
 
+    // Delete linked User account
     await User.findByIdAndDelete(recruiter.userId);
-    await Recruiter.findByIdAndDelete(req.params.id);
 
-    res.status(200).json({
+    // Delete Recruiter profile
+    await Recruiter.findByIdAndDelete(recruiter._id);
+
+    return res.status(200).json({
       success: true,
       message: "Recruiter deleted successfully",
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("Delete Recruiter error:", error);
+
+    return res.status(500).json({
       success: false,
       message: "Failed to delete recruiter",
       error: error.message,
     });
   }
 };
+
+// ==========================================
+// EXPORTS
+// ==========================================
 
 module.exports = {
   addRecruiter,
