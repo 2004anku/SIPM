@@ -3,15 +3,11 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 
-// ==========================================
 // DATABASE
-// ==========================================
 
 const connectDB = require("./config/db");
 
-// ==========================================
 // ROUTES
-// ==========================================
 
 // Authentication
 const authRoutes = require("./feature/auth/auth.routes");
@@ -30,24 +26,21 @@ const recruiterRoutes = require("./feature/college-admin/recruiter/recruiter.rou
 // Recruiter
 const jobRoutes = require("./feature/recruiter/job/job.routes");
 
+// Student routes
+const studentPortalRoutes = require("./feature/student/student.routes");
+
 const app = express();
 
-// ==========================================
 // MIDDLEWARE
-// ==========================================
 
 app.use(cors());
 app.use(express.json());
 
-// ==========================================
 // DATABASE CONNECTION
-// ==========================================
 
 connectDB();
 
-// ==========================================
 // API ROUTES
-// ==========================================
 
 // User routes
 app.use("/api/users", userRoutes);
@@ -67,9 +60,10 @@ app.use("/api/college-admin/recruiters", recruiterRoutes);
 
 app.use("/api/recruiter/jobs", jobRoutes);
 
-// ==========================================
+// Student routes
+app.use("/api/student", studentPortalRoutes);
+
 // SERVER
-// ==========================================
 
 const PORT = process.env.PORT || 5000;
 

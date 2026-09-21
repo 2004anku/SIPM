@@ -1,15 +1,23 @@
+const bcrypt = require("bcrypt");
+
 const Student = require("./student.model");
+const User = require("../../users/user.model");
 const College = require("../../super-admin/college/college.model");
 
+// ============================================================
 // Add Student
+// ============================================================
+
 const addStudent = async (req, res) => {
   try {
     const { name, email, phone, enrollmentNumber, course, semester } = req.body;
 
-    // College ID comes from the authenticated College Admin
     const collegeId = req.user.collegeId;
 
+    // --------------------------------------------------------
     // Check required fields
+    // --------------------------------------------------------
+
     if (
       !name ||
       !email ||
@@ -25,7 +33,12 @@ const addStudent = async (req, res) => {
       });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // --------------------------------------------------------
     // Check if College Admin's college still exists
+    // --------------------------------------------------------
+
     const college = await College.findById(collegeId);
 
     if (!college) {
@@ -35,9 +48,12 @@ const addStudent = async (req, res) => {
       });
     }
 
-    // Check existing student
+    // --------------------------------------------------------
+    // Check if student profile already exists
+    // --------------------------------------------------------
+
     const existingStudent = await Student.findOne({
-      $or: [{ email }, { enrollmentNumber }],
+      $or: [{ email: normalizedEmail }, { enrollmentNumber }],
     });
 
     if (existingStudent) {
@@ -47,34 +63,93 @@ const addStudent = async (req, res) => {
       });
     }
 
-    // Create student
-    // IMPORTANT: collegeId comes from req.user, NOT req.body
-    const student = await Student.create({
-      name,
-      email,
-      phone,
-      enrollmentNumber,
-      course,
-      semester,
-      collegeId,
+    // --------------------------------------------------------
+    // Check if login account already exists
+    // --------------------------------------------------------
+
+    const existingUser = await User.findOne({
+      email: normalizedEmail,
     });
 
-    res.status(201).json({
-      success: true,
-      message: "Student added successfully",
-      data: student,
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "A user account with this email already exists",
+      });
+    }
+
+    // --------------------------------------------------------
+    // Create User login account
+    // --------------------------------------------------------
+
+    const defaultPassword = "123456";
+
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
+    const user = await User.create({
+      name,
+      email: normalizedEmail,
+      password: hashedPassword,
+      role: "student",
+      collegeId,
+      isActive: true,
     });
+
+    // --------------------------------------------------------
+    // Create Student profile
+    // --------------------------------------------------------
+
+    try {
+      const student = await Student.create({
+        name,
+        email: normalizedEmail,
+        phone,
+        enrollmentNumber,
+        course,
+        semester,
+        collegeId,
+      });
+
+      const studentData = student.toObject();
+
+      // Never send password in API response
+      delete studentData.password;
+
+      return res.status(201).json({
+        success: true,
+        message: "Student added successfully. Default password is 123456.",
+        data: studentData,
+      });
+    } catch (studentError) {
+      // ------------------------------------------------------
+      // Roll back User if Student creation fails
+      // ------------------------------------------------------
+
+      await User.findByIdAndDelete(user._id);
+
+      throw studentError;
+    }
   } catch (error) {
     console.error("Add student error:", error);
 
-    res.status(500).json({
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: "Student with this email or enrollment number already exists",
+      });
+    }
+
+    return res.status(500).json({
       success: false,
       message: "Failed to add student",
     });
   }
 };
 
+// ============================================================
 // Get All Students
+// ============================================================
+
 const getAllStudents = async (req, res) => {
   try {
     const collegeId = req.user.collegeId;
@@ -82,10 +157,11 @@ const getAllStudents = async (req, res) => {
     const students = await Student.find({
       collegeId,
     })
+      .select("-password")
       .populate("collegeId", "name code")
       .sort({ createdAt: -1 });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       count: students.length,
       data: students,
@@ -93,14 +169,17 @@ const getAllStudents = async (req, res) => {
   } catch (error) {
     console.error("Get students error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch students",
     });
   }
 };
 
+// ============================================================
 // Get Single Student
+// ============================================================
+
 const getStudentById = async (req, res) => {
   try {
     const collegeId = req.user.collegeId;
@@ -108,7 +187,9 @@ const getStudentById = async (req, res) => {
     const student = await Student.findOne({
       _id: req.params.id,
       collegeId,
-    }).populate("collegeId", "name code email");
+    })
+      .select("-password")
+      .populate("collegeId", "name code email");
 
     if (!student) {
       return res.status(404).json({
@@ -117,27 +198,35 @@ const getStudentById = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: student,
     });
   } catch (error) {
     console.error("Get student error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch student",
     });
   }
 };
 
+// ============================================================
 // Update Student
+// ============================================================
+
 const updateStudent = async (req, res) => {
   try {
     const collegeId = req.user.collegeId;
 
-    // Never allow College Admin to change the student's collegeId
-    const { collegeId: requestedCollegeId, ...updateData } = req.body;
+    // College Admin cannot change these fields
+    const {
+      collegeId: requestedCollegeId,
+      password,
+      email,
+      ...updateData
+    } = req.body;
 
     const student = await Student.findOneAndUpdate(
       {
@@ -149,7 +238,9 @@ const updateStudent = async (req, res) => {
         new: true,
         runValidators: true,
       },
-    );
+    )
+      .select("-password")
+      .populate("collegeId", "name code email");
 
     if (!student) {
       return res.status(404).json({
@@ -158,7 +249,7 @@ const updateStudent = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Student updated successfully",
       data: student,
@@ -166,19 +257,26 @@ const updateStudent = async (req, res) => {
   } catch (error) {
     console.error("Update student error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to update student",
     });
   }
 };
 
+// ============================================================
 // Delete Student
+// ============================================================
+
 const deleteStudent = async (req, res) => {
   try {
     const collegeId = req.user.collegeId;
 
-    const student = await Student.findOneAndDelete({
+    // --------------------------------------------------------
+    // Find student belonging to this college
+    // --------------------------------------------------------
+
+    const student = await Student.findOne({
       _id: req.params.id,
       collegeId,
     });
@@ -190,19 +288,39 @@ const deleteStudent = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    // --------------------------------------------------------
+    // Delete Student profile
+    // --------------------------------------------------------
+
+    await Student.findByIdAndDelete(student._id);
+
+    // --------------------------------------------------------
+    // Delete corresponding User login account
+    // --------------------------------------------------------
+
+    await User.findOneAndDelete({
+      email: student.email,
+      role: "student",
+      collegeId,
+    });
+
+    return res.status(200).json({
       success: true,
-      message: "Student deleted successfully",
+      message: "Student and login account deleted successfully",
     });
   } catch (error) {
     console.error("Delete student error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to delete student",
     });
   }
 };
+
+// ============================================================
+// Export Controllers
+// ============================================================
 
 module.exports = {
   addStudent,

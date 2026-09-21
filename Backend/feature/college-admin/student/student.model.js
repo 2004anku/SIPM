@@ -2,6 +2,10 @@ const mongoose = require("mongoose");
 
 const studentSchema = new mongoose.Schema(
   {
+    // ==========================================
+    // STUDENT INFORMATION
+    // ==========================================
+
     name: {
       type: String,
       required: [true, "Student name is required"],
@@ -42,11 +46,20 @@ const studentSchema = new mongoose.Schema(
       max: 12,
     },
 
+    // ==========================================
+    // COLLEGE
+    // ==========================================
+
     collegeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "College",
       required: [true, "College ID is required"],
+      index: true,
     },
+
+    // ==========================================
+    // STUDENT STATUS
+    // ==========================================
 
     isActive: {
       type: Boolean,
