@@ -27,7 +27,8 @@ const recruiterRoutes = require("./feature/college-admin/recruiter/recruiter.rou
 const jobRoutes = require("./feature/recruiter/job/job.routes");
 
 // Student routes
-const studentPortalRoutes = require("./feature/student/student.routes");
+const studentPortalRoutes = require("./feature/student/student-deshboard/student.routes");
+const studentApplicationRoutes = require("./feature/student/application/application.routes");
 
 const app = express();
 
@@ -62,7 +63,7 @@ app.use("/api/recruiter/jobs", jobRoutes);
 
 // Student routes
 app.use("/api/student", studentPortalRoutes);
-
+app.use("/api/student/applications", studentApplicationRoutes);
 // SERVER
 
 const PORT = process.env.PORT || 5000;
