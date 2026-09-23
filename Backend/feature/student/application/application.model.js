@@ -58,6 +58,51 @@ const applicationSchema = new mongoose.Schema(
     },
 
     // ==========================================
+    // INTERVIEW
+    // ==========================================
+
+    interview: {
+      interviewDate: {
+        type: Date,
+      },
+
+      interviewMode: {
+        type: String,
+        enum: ["online", "offline"],
+      },
+
+      meetingLink: {
+        type: String,
+        trim: true,
+        maxlength: 500,
+      },
+
+      message: {
+        type: String,
+        trim: true,
+        maxlength: 1000,
+      },
+
+      sentAt: {
+        type: Date,
+      },
+    },
+
+    // ==========================================
+    // REJECTION
+    // ==========================================
+
+    rejectionReason: {
+      type: String,
+      trim: true,
+      maxlength: 1000,
+    },
+
+    rejectedAt: {
+      type: Date,
+    },
+
+    // ==========================================
     // APPLICATION DATE
     // ==========================================
 

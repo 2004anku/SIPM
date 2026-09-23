@@ -25,7 +25,7 @@ const recruiterRoutes = require("./feature/college-admin/recruiter/recruiter.rou
 
 // Recruiter
 const jobRoutes = require("./feature/recruiter/job/job.routes");
-
+const recruiterApplicationRoutes = require("./feature/recruiter/application/application.routes");
 // Student routes
 const studentPortalRoutes = require("./feature/student/student-deshboard/student.routes");
 const studentApplicationRoutes = require("./feature/student/application/application.routes");
@@ -60,6 +60,7 @@ app.use("/api/college-admin/recruiters", recruiterRoutes);
 // Recruiter Job routes
 
 app.use("/api/recruiter/jobs", jobRoutes);
+app.use("/api/recruiter/applications", recruiterApplicationRoutes);
 
 // Student routes
 app.use("/api/student", studentPortalRoutes);
