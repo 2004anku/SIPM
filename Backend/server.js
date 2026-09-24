@@ -66,7 +66,11 @@ app.use("/api/recruiter/applications", recruiterApplicationRoutes);
 app.use("/api/student", studentPortalRoutes);
 app.use("/api/student/applications", studentApplicationRoutes);
 // SERVER
-
+app.get("/", (req, res) => {
+  res.json({
+    message: "SIPMP Backend is running",
+  });
+});
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
